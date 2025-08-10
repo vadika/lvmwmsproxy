@@ -104,13 +104,13 @@ def wms_proxy():
         # Log incoming request
         logger.info(f"Incoming WMS request: {request.url}")
         
-        # Check if this is a WMS request
-        service = params.get('SERVICE', '').upper()
-        if service != 'WMS':
+        # Check if this is a WMS request (case-insensitive)
+        service = params.get('SERVICE') or params.get('service') or ''
+        if service.upper() != 'WMS':
             return jsonify({"error": "Only WMS service is supported"}), 400
         
-        # Get the request type
-        wms_request = params.get('REQUEST', '').upper()
+        # Get the request type (case-insensitive)
+        wms_request = (params.get('REQUEST') or params.get('request') or '').upper()
         
         if wms_request == 'GETCAPABILITIES':
             # For GetCapabilities, just forward the request
@@ -122,23 +122,29 @@ def wms_proxy():
         elif wms_request == 'GETMAP':
             # For GetMap, transform coordinates if needed
             
-            # Get source CRS from request
-            source_crs = params.get('CRS') or params.get('SRS', 'EPSG:4326')
+            # Get source CRS from request (case-insensitive)
+            source_crs = params.get('CRS') or params.get('crs') or params.get('SRS') or params.get('srs') or 'EPSG:4326'
             
-            # Get layer name to determine target CRS
-            layers = params.get('LAYERS', '')
+            # Get layer name to determine target CRS (case-insensitive)
+            layers = params.get('LAYERS') or params.get('layers') or ''
             target_crs = get_layer_native_crs(layers)
             
-            # Transform BBOX if needed
-            if 'BBOX' in params and source_crs.upper() in ['EPSG:4326', 'CRS:84', 'EPSG:3857']:
-                original_bbox = params['BBOX']
+            # Transform BBOX if needed (case-insensitive)
+            bbox_key = 'BBOX' if 'BBOX' in params else 'bbox' if 'bbox' in params else None
+            if bbox_key and source_crs.upper() in ['EPSG:4326', 'CRS:84', 'EPSG:3857']:
+                original_bbox = params[bbox_key]
                 transformed_bbox = transform_bbox(original_bbox, source_crs)
-                params['BBOX'] = transformed_bbox
+                params[bbox_key] = transformed_bbox
                 
-                # Update CRS to target system
-                params['CRS'] = target_crs
+                # Update CRS to target system (preserve original case)
+                if 'CRS' in params:
+                    params['CRS'] = target_crs
+                elif 'crs' in params:
+                    params['crs'] = target_crs
                 if 'SRS' in params:
                     params['SRS'] = target_crs
+                elif 'srs' in params:
+                    params['srs'] = target_crs
             
             # Forward request to LVM GeoServer
             response = requests.get(LVM_BASE_URL, params=params, timeout=30)
