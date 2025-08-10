@@ -57,7 +57,7 @@ def transform_bbox(bbox_str, source_crs):
         # Choose appropriate transformer
         if source_crs.upper() in ["EPSG:4326", "CRS:84"]:
             transformer = wgs84_to_lks92
-            # For WGS84, coordinates are lon,lat
+            # For WGS84, coordinates are lon,lat (x,y)
             min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
         elif source_crs.upper() == "EPSG:3857":
@@ -69,8 +69,14 @@ def transform_bbox(bbox_str, source_crs):
             logger.warning(f"Unsupported source CRS: {source_crs}, passing through")
             return bbox_str
         
+        # Ensure proper coordinate order (min values should be smaller than max values)
+        final_minx = min(min_x_transformed, max_x_transformed)
+        final_miny = min(min_y_transformed, max_y_transformed)
+        final_maxx = max(min_x_transformed, max_x_transformed)
+        final_maxy = max(min_y_transformed, max_y_transformed)
+        
         # Return transformed coordinates
-        transformed_bbox = f"{min_x_transformed},{min_y_transformed},{max_x_transformed},{max_y_transformed}"
+        transformed_bbox = f"{final_minx},{final_miny},{final_maxx},{final_maxy}"
         logger.info(f"Transformed BBOX from {source_crs}: {bbox_str} -> EPSG:3059: {transformed_bbox}")
         
         return transformed_bbox
