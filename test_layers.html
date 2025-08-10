@@ -84,8 +84,8 @@
     <div class="controls">
         <div class="info">
             <strong>LVM WMS Layers Test</strong><br>
-            This page demonstrates various LVM GeoServer WMS layers using direct WGS84 coordinates.
-            Layers are loaded directly from LVM GeoServer without coordinate translation.
+            This page demonstrates various LVM GeoServer WMS layers through the coordinate translation proxy.
+            The proxy runs on port 8118 and translates WGS84 coordinates to Latvian LKS-92.
         </div>
         
         <div class="layer-group">
@@ -150,27 +150,6 @@
             </div>
         </div>
         
-        <div class="layer-group">
-            <h3>LVM Forest Data</h3>
-            <div class="layer-controls">
-                <div class="layer-control">
-                    <input type="checkbox" id="forest_data" value="publicwfs:LVM_meza_dati">
-                    <label for="forest_data">Mežaudžu dati</label>
-                </div>
-                <div class="layer-control">
-                    <input type="checkbox" id="forest_infra" value="publicwfs:LVM_Meza_infrastruktura">
-                    <label for="forest_infra">Meža infrastruktūra</label>
-                </div>
-                <div class="layer-control">
-                    <input type="checkbox" id="forest_roads" value="publicwfs:road">
-                    <label for="forest_roads">Meža ceļi</label>
-                </div>
-                <div class="layer-control">
-                    <input type="checkbox" id="districts" value="publicwfs:lvmdistrict">
-                    <label for="districts">LVM iecirkņi</label>
-                </div>
-            </div>
-        </div>
         
         <div class="layer-group">
             <h3>LVM Forest Data</h3>
@@ -260,8 +239,8 @@
         const overlayLayers = new Map();
         let currentOpacity = 0.8;
         
-        // Direct LVM GeoServer URL using WGS84
-        const proxyUrl = 'https://lvmgeoserver.lvm.lv/geoserver/ows';
+        // Proxy URL - adjust if running on different port
+        const proxyUrl = 'http://localhost:8118/wms';
         
         // Function to create WMS layer
         function createWMSLayer(layerName) {
@@ -270,7 +249,7 @@
                 format: 'image/png',
                 transparent: true,
                 version: '1.3.0',
-                crs: L.CRS.EPSG4326,
+                crs: L.CRS.EPSG3857,
                 opacity: currentOpacity,
                 attribution: 'LVM GeoServer'
             });
@@ -283,7 +262,7 @@
                 format: 'image/png',
                 transparent: false,
                 version: '1.3.0',
-                crs: L.CRS.EPSG4326,
+                crs: L.CRS.EPSG3857,
                 attribution: 'LVM GeoServer'
             });
         }
@@ -358,8 +337,7 @@
         L.control.scale().addTo(map);
         
         console.log('LVM WMS Layers Test initialized');
-        console.log('LVM GeoServer URL:', proxyUrl);
-        console.log('Using WGS84 coordinates (EPSG:4326)');
+        console.log('Proxy URL:', proxyUrl);
         console.log('Click on map to see coordinates');
     </script>
 </body>
