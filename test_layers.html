@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LVM WMS Layers Test</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        #map {
+            height: 70vh;
+            width: 100%;
+        }
+        
+        .controls {
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .layer-group {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+        }
+        
+        .layer-group h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .layer-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .layer-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        .layer-control input[type="checkbox"] {
+            margin: 0;
+        }
+        
+        .layer-control label {
+            cursor: pointer;
+            margin: 0;
+        }
+        
+        .opacity-control {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+        }
+        
+        .opacity-control input[type="range"] {
+            width: 100px;
+        }
+        
+        .info {
+            padding: 10px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #2196F3;
+            margin-bottom: 10px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="info">
+            <strong>LVM WMS Layers Test</strong><br>
+            This page demonstrates various LVM GeoServer WMS layers through the coordinate translation proxy.
+            The proxy runs on port 8118 and translates WGS84 coordinates to Latvian LKS-92.
+        </div>
+        
+        <div class="layer-group">
+            <h3>Base Maps</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="radio" id="osm" name="basemap" value="osm" checked>
+                    <label for="osm">OpenStreetMap</label>
+                </div>
+                <div class="layer-control">
+                    <input type="radio" id="ortho" name="basemap" value="public:Orto_LKS">
+                    <label for="ortho">Ortofoto 7/8 cikls</label>
+                </div>
+                <div class="layer-control">
+                    <input type="radio" id="topo10" name="basemap" value="public:Topo10">
+                    <label for="topo10">Topokarte 1:10 000</label>
+                </div>
+                <div class="layer-control">
+                    <input type="radio" id="sentinel" name="basemap" value="public:Sentinel-2">
+                    <label for="sentinel">Sentinel-2</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Cadastral & Administrative</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="cadastre" value="publicwfs:Kadastra_karte">
+                    <label for="cadastre">Kadastra karte</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="parcels" value="publicwfs:kkparcel">
+                    <label for="parcels">Zemes vienības</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="buildings" value="publicwfs:kkbuilding">
+                    <label for="buildings">Ēkas</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="admin" value="publicwfs:LV_admin_vienibas">
+                    <label for="admin">Administratīvais iedalījums</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Roads & Infrastructure</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="roads" value="publicwfs:arisroad">
+                    <label for="roads">Ceļi</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="streets" value="publicwfs:arisstreet">
+                    <label for="streets">Ielas</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="addresses" value="publicwfs:Adreses_celu_tikls">
+                    <label for="addresses">Adreses ar ceļu tīklu</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>LVM Forest Data</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="forest_data" value="publicwfs:LVM_meza_dati">
+                    <label for="forest_data">Mežaudžu dati</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="forest_infra" value="publicwfs:LVM_Meza_infrastruktura">
+                    <label for="forest_infra">Meža infrastruktūra</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="forest_roads" value="publicwfs:road">
+                    <label for="forest_roads">Meža ceļi</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="districts" value="publicwfs:lvmdistrict">
+                    <label for="districts">LVM iecirkņi</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Terrain & Relief</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="contours" value="public:Contours">
+                    <label for="contours">Horizontāles ar augstumiem</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="dtm" value="public:DTM_contours">
+                    <label for="dtm">DTM ar horizontālēm</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="slopes" value="public:SlopesLKS2">
+                    <label for="slopes">Reljefa slīpumi</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layer-group">
+            <h3>Tourism & Recreation</h3>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="tourism" value="publicwfs:LVM_Turisma_infrastruktura">
+                    <label for="tourism">Tūrisma infrastruktūra</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="nature_trails" value="publicwfs:naturetrail">
+                    <label for="nature_trails">Dabas takas</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="picnic" value="publicwfs:tourismrestingplace">
+                    <label for="picnic">Piknika vietas</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="towers" value="publicwfs:recreationplace_towers">
+                    <label for="towers">Skatu torņi</label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="opacity-control">
+            <label for="opacity">Layer Opacity:</label>
+            <input type="range" id="opacity" min="0" max="1" step="0.1" value="0.8">
+            <span id="opacity-value">80%</span>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Initialize map centered on Latvia
+        const map = L.map('map').setView([56.9496, 24.1052], 8);
+        
+        // Base layers
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        });
+        
+        // Add default base layer
+        osmLayer.addTo(map);
+        
+        // Store active overlay layers
+        const overlayLayers = new Map();
+        let currentOpacity = 0.8;
+        
+        // Proxy URL - adjust if running on different port
+        const proxyUrl = 'http://localhost:8118/wms';
+        
+        // Function to create WMS layer
+        function createWMSLayer(layerName) {
+            return L.tileLayer.wms(proxyUrl, {
+                layers: layerName,
+                format: 'image/png',
+                transparent: true,
+                version: '1.3.0',
+                crs: L.CRS.EPSG3857,
+                opacity: currentOpacity,
+                attribution: 'LVM GeoServer'
+            });
+        }
+        
+        // Function to create base map WMS layer
+        function createBaseWMSLayer(layerName) {
+            return L.tileLayer.wms(proxyUrl, {
+                layers: layerName,
+                format: 'image/png',
+                transparent: false,
+                version: '1.3.0',
+                crs: L.CRS.EPSG3857,
+                attribution: 'LVM GeoServer'
+            });
+        }
+        
+        // Handle base map changes
+        document.querySelectorAll('input[name="basemap"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove current base layer
+                map.eachLayer(layer => {
+                    if (layer.options && !layer.options.transparent) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                // Add new base layer
+                if (this.value === 'osm') {
+                    osmLayer.addTo(map);
+                } else {
+                    const wmsLayer = createBaseWMSLayer(this.value);
+                    wmsLayer.addTo(map);
+                }
+            });
+        });
+        
+        // Handle overlay layer toggles
+        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const layerName = this.value;
+                
+                if (this.checked) {
+                    // Add layer
+                    const layer = createWMSLayer(layerName);
+                    layer.addTo(map);
+                    overlayLayers.set(layerName, layer);
+                } else {
+                    // Remove layer
+                    const layer = overlayLayers.get(layerName);
+                    if (layer) {
+                        map.removeLayer(layer);
+                        overlayLayers.delete(layerName);
+                    }
+                }
+            });
+        });
+        
+        // Handle opacity changes
+        const opacitySlider = document.getElementById('opacity');
+        const opacityValue = document.getElementById('opacity-value');
+        
+        opacitySlider.addEventListener('input', function() {
+            currentOpacity = parseFloat(this.value);
+            opacityValue.textContent = Math.round(currentOpacity * 100) + '%';
+            
+            // Update opacity for all overlay layers
+            overlayLayers.forEach(layer => {
+                layer.setOpacity(currentOpacity);
+            });
+        });
+        
+        // Add click handler to show coordinates
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6);
+            const lng = e.latlng.lng.toFixed(6);
+            
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent(`<b>Coordinates:</b><br>Lat: ${lat}<br>Lng: ${lng}`)
+                .openOn(map);
+        });
+        
+        // Add scale control
+        L.control.scale().addTo(map);
+        
+        console.log('LVM WMS Layers Test initialized');
+        console.log('Proxy URL:', proxyUrl);
+        console.log('Click on map to see coordinates');
+    </script>
+</body>
+</html>
