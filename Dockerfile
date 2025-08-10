@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY lvm_wms_proxy.py .
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8118
 
 # Create non-root user for security
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

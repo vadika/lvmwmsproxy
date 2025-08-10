@@ -248,9 +248,9 @@ def internal_error(error):
 
 if __name__ == '__main__':
     print("Starting LVM WMS Coordinate Translation Proxy...")
-    print("Access the proxy at: http://localhost:8080")
-    print("WMS endpoint: http://localhost:8080/wms")
-    print("Health check: http://localhost:8080/health")
-    print("Coordinate test: http://localhost:8080/transform?x=24.1&y=56.9&from=EPSG:4326&to=EPSG:3059")
+    print("Access the proxy at: http://localhost:8118")
+    print("WMS endpoint: http://localhost:8118/wms")
+    print("Health check: http://localhost:8118/health")
+    print("Coordinate test: http://localhost:8118/transform?x=24.1&y=56.9&from=EPSG:4326&to=EPSG:3059")
     
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8118, debug=True)
