@@ -60,6 +60,14 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
         minx, miny, maxx, maxy = coords
         logger.info(f"Input BBOX: minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}")
         
+        # Test transformation with known coordinates
+        # Riga center: approximately 24.1, 56.95 in WGS84 should be around 500000, 300000 in LKS-92
+        if source_crs.upper() == "EPSG:3857":
+            # Test point transformation for debugging
+            test_transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326", always_xy=True)
+            test_lon, test_lat = test_transformer.transform(minx, miny)
+            logger.info(f"Test: Web Mercator ({minx}, {miny}) -> WGS84 ({test_lon}, {test_lat})")
+        
         # Choose appropriate transformer
         if source_crs.upper() in ["EPSG:4326", "CRS:84"]:
             transformer = wgs84_to_lks92
@@ -76,6 +84,13 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
         
         logger.info(f"Transformation: ({minx}, {miny}) -> ({min_x_transformed}, {min_y_transformed})")
         logger.info(f"Transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
+        
+        # Check if coordinates are reasonable for Latvia
+        # Latvia is roughly between X: 300000-700000, Y: 50000-400000 in LKS-92
+        if min_x_transformed < 200000 or max_x_transformed > 800000:
+            logger.error(f"X coordinates outside Latvia range: {min_x_transformed}, {max_x_transformed}")
+        if min_y_transformed < 0 or max_y_transformed > 500000:
+            logger.error(f"Y coordinates outside Latvia range: {min_y_transformed}, {max_y_transformed}")
         
         # Ensure proper coordinate order (min values should be smaller than max values)
         final_minx = min(min_x_transformed, max_x_transformed)
