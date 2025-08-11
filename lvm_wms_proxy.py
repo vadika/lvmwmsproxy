@@ -176,20 +176,23 @@ def wms_proxy():
             if bbox_key and source_crs.upper() in ['EPSG:4326', 'CRS:84', 'EPSG:3857']:
                 original_bbox = params[bbox_key]
                 logger.info(f"Original BBOX: {original_bbox}, Source CRS: {source_crs}, WMS Version: {wms_version}")
-                transformed_bbox = transform_bbox(original_bbox, source_crs, wms_version)
-                params[bbox_key] = transformed_bbox
                 
-                # Update CRS to target system (preserve original case)
-                if 'CRS' in params:
-                    params['CRS'] = target_crs
-                elif 'crs' in params:
-                    params['crs'] = target_crs
-                if 'SRS' in params:
-                    params['SRS'] = target_crs
-                elif 'srs' in params:
-                    params['srs'] = target_crs
+                # TEMPORARY: Skip transformation to test if the issue is with coordinate transformation
+                logger.info("SKIPPING COORDINATE TRANSFORMATION FOR DEBUGGING")
+                # transformed_bbox = transform_bbox(original_bbox, source_crs, wms_version)
+                # params[bbox_key] = transformed_bbox
                 
-                logger.info(f"Updated CRS to: {target_crs}")
+                # Don't update CRS - keep original
+                # if 'CRS' in params:
+                #     params['CRS'] = target_crs
+                # elif 'crs' in params:
+                #     params['crs'] = target_crs
+                # if 'SRS' in params:
+                #     params['SRS'] = target_crs
+                # elif 'srs' in params:
+                #     params['srs'] = target_crs
+                
+                logger.info(f"Keeping original CRS: {source_crs}")
             
             # Forward request to LVM GeoServer
             response = requests.get(LVM_BASE_URL, params=params, timeout=30)
