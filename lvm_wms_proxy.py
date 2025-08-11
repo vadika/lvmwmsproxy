@@ -36,13 +36,14 @@ wgs84_to_lks92 = Transformer.from_crs("EPSG:4326", "EPSG:3059", always_xy=True)
 # Web Mercator (EPSG:3857) to Latvian LKS-92 (EPSG:3059)  
 webmercator_to_lks92 = Transformer.from_crs("EPSG:3857", "EPSG:3059", always_xy=True)
 
-def transform_bbox(bbox_str, source_crs):
+def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
     """
     Transform bounding box coordinates from source CRS to EPSG:3059
     
     Args:
-        bbox_str: Comma-separated bbox string "minx,miny,maxx,maxy"
+        bbox_str: Comma-separated bbox string 
         source_crs: Source coordinate system ("EPSG:4326", "CRS:84", "EPSG:3857")
+        wms_version: WMS version to determine axis order
     
     Returns:
         Transformed bbox string in EPSG:3059
@@ -52,13 +53,26 @@ def transform_bbox(bbox_str, source_crs):
         if len(coords) != 4:
             raise ValueError("BBOX must have 4 coordinates")
         
-        minx, miny, maxx, maxy = coords
-        logger.info(f"Input BBOX: minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}")
+        # For WMS 1.3.0, axis order depends on CRS
+        if wms_version == "1.3.0":
+            if source_crs.upper() == "EPSG:4326":
+                # WMS 1.3.0 with EPSG:4326 uses lat,lon order
+                miny, minx, maxy, maxx = coords
+                logger.info(f"WMS 1.3.0 EPSG:4326 - Input BBOX (lat,lon,lat,lon): {bbox_str}")
+                logger.info(f"Converted to x,y: minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}")
+            else:
+                # For EPSG:3857 and others, use x,y order
+                minx, miny, maxx, maxy = coords
+                logger.info(f"WMS 1.3.0 {source_crs} - Input BBOX (x,y,x,y): {bbox_str}")
+        else:
+            # WMS 1.1.1 always uses x,y order
+            minx, miny, maxx, maxy = coords
+            logger.info(f"WMS 1.1.1 - Input BBOX (x,y,x,y): {bbox_str}")
         
         # Choose appropriate transformer
         if source_crs.upper() in ["EPSG:4326", "CRS:84"]:
             transformer = wgs84_to_lks92
-            # For WGS84, coordinates are lon,lat (x,y)
+            # Transform corner points
             min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
         elif source_crs.upper() == "EPSG:3857":
@@ -81,7 +95,7 @@ def transform_bbox(bbox_str, source_crs):
         
         logger.info(f"Final BBOX: minx={final_minx}, miny={final_miny}, maxx={final_maxx}, maxy={final_maxy}")
         
-        # Return transformed coordinates
+        # Return transformed coordinates in target CRS format
         transformed_bbox = f"{final_minx},{final_miny},{final_maxx},{final_maxy}"
         logger.info(f"Transformed BBOX from {source_crs}: {bbox_str} -> EPSG:3059: {transformed_bbox}")
         
@@ -141,12 +155,15 @@ def wms_proxy():
             layers = params.get('LAYERS') or params.get('layers') or ''
             target_crs = get_layer_native_crs(layers)
             
+            # Get WMS version for proper axis order handling
+            wms_version = params.get('VERSION') or params.get('version') or '1.3.0'
+            
             # Transform BBOX if needed (case-insensitive)
             bbox_key = 'BBOX' if 'BBOX' in params else 'bbox' if 'bbox' in params else None
             if bbox_key and source_crs.upper() in ['EPSG:4326', 'CRS:84', 'EPSG:3857']:
                 original_bbox = params[bbox_key]
-                logger.info(f"Original BBOX: {original_bbox}, Source CRS: {source_crs}")
-                transformed_bbox = transform_bbox(original_bbox, source_crs)
+                logger.info(f"Original BBOX: {original_bbox}, Source CRS: {source_crs}, WMS Version: {wms_version}")
+                transformed_bbox = transform_bbox(original_bbox, source_crs, wms_version)
                 params[bbox_key] = transformed_bbox
                 
                 # Update CRS to target system (preserve original case)
