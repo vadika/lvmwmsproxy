@@ -139,6 +139,7 @@ def wms_proxy():
             bbox_key = 'BBOX' if 'BBOX' in params else 'bbox' if 'bbox' in params else None
             if bbox_key and source_crs.upper() in ['EPSG:4326', 'CRS:84', 'EPSG:3857']:
                 original_bbox = params[bbox_key]
+                logger.info(f"Original BBOX: {original_bbox}, Source CRS: {source_crs}")
                 transformed_bbox = transform_bbox(original_bbox, source_crs)
                 params[bbox_key] = transformed_bbox
                 
@@ -151,6 +152,8 @@ def wms_proxy():
                     params['SRS'] = target_crs
                 elif 'srs' in params:
                     params['srs'] = target_crs
+                
+                logger.info(f"Updated CRS to: {target_crs}")
             
             # Forward request to LVM GeoServer
             response = requests.get(LVM_BASE_URL, params=params, timeout=30)
