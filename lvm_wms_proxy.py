@@ -92,12 +92,16 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
             logger.info(f"WGS84 transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
         elif source_crs.upper() == "EPSG:3857":
             transformer = webmercator_to_lks92
-            # Transform corner points
-            min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
-            max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
+            # Transform all four corners to handle potential axis flipping
+            sw_x, sw_y = transformer.transform(minx, miny)  # Southwest corner
+            ne_x, ne_y = transformer.transform(maxx, maxy)  # Northeast corner
             
-            logger.info(f"Web Mercator transformation: ({minx}, {miny}) -> ({min_x_transformed}, {min_y_transformed})")
-            logger.info(f"Web Mercator transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
+            logger.info(f"Web Mercator transformation SW: ({minx}, {miny}) -> ({sw_x}, {sw_y})")
+            logger.info(f"Web Mercator transformation NE: ({maxx}, {maxy}) -> ({ne_x}, {ne_y})")
+            
+            # Assign transformed coordinates
+            min_x_transformed, min_y_transformed = sw_x, sw_y
+            max_x_transformed, max_y_transformed = ne_x, ne_y
         else:
             # If it's already EPSG:3059 or another system, pass through
             logger.warning(f"Unsupported source CRS: {source_crs}, passing through")
