@@ -78,25 +78,33 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
             logger.warning(f"Unsupported source CRS: {source_crs}, passing through")
             return bbox_str
         
-        # Transform the bounding box corners
-        min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
-        max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
+        # Transform all four corners to handle potential coordinate system flipping
+        sw_x, sw_y = transformer.transform(minx, miny)  # Southwest (bottom-left)
+        ne_x, ne_y = transformer.transform(maxx, maxy)  # Northeast (top-right)
+        se_x, se_y = transformer.transform(maxx, miny)  # Southeast (bottom-right)
+        nw_x, nw_y = transformer.transform(minx, maxy)  # Northwest (top-left)
         
-        logger.info(f"Transformation: ({minx}, {miny}) -> ({min_x_transformed}, {min_y_transformed})")
-        logger.info(f"Transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
+        logger.info(f"Corner transformations:")
+        logger.info(f"  SW ({minx}, {miny}) -> ({sw_x}, {sw_y})")
+        logger.info(f"  NE ({maxx}, {maxy}) -> ({ne_x}, {ne_y})")
+        logger.info(f"  SE ({maxx}, {miny}) -> ({se_x}, {se_y})")
+        logger.info(f"  NW ({minx}, {maxy}) -> ({nw_x}, {nw_y})")
+        
+        # Find the actual min/max values from all transformed corners
+        all_x = [sw_x, ne_x, se_x, nw_x]
+        all_y = [sw_y, ne_y, se_y, nw_y]
+        
+        final_minx = min(all_x)
+        final_miny = min(all_y)
+        final_maxx = max(all_x)
+        final_maxy = max(all_y)
         
         # Check if coordinates are reasonable for Latvia
         # Latvia is roughly between X: 300000-700000, Y: 50000-400000 in LKS-92
-        if min_x_transformed < 200000 or max_x_transformed > 800000:
-            logger.error(f"X coordinates outside Latvia range: {min_x_transformed}, {max_x_transformed}")
-        if min_y_transformed < 0 or max_y_transformed > 500000:
-            logger.error(f"Y coordinates outside Latvia range: {min_y_transformed}, {max_y_transformed}")
-        
-        # Ensure proper coordinate order (min values should be smaller than max values)
-        final_minx = min(min_x_transformed, max_x_transformed)
-        final_miny = min(min_y_transformed, max_y_transformed)
-        final_maxx = max(min_x_transformed, max_x_transformed)
-        final_maxy = max(min_y_transformed, max_y_transformed)
+        if final_minx < 200000 or final_maxx > 800000:
+            logger.error(f"X coordinates outside Latvia range: {final_minx}, {final_maxx}")
+        if final_miny < 0 or final_maxy > 500000:
+            logger.error(f"Y coordinates outside Latvia range: {final_miny}, {final_maxy}")
         
         logger.info(f"Final BBOX: minx={final_minx}, miny={final_miny}, maxx={final_maxx}, maxy={final_maxy}")
         
