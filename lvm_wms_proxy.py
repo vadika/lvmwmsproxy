@@ -53,6 +53,7 @@ def transform_bbox(bbox_str, source_crs):
             raise ValueError("BBOX must have 4 coordinates")
         
         minx, miny, maxx, maxy = coords
+        logger.info(f"Input BBOX: minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}")
         
         # Choose appropriate transformer
         if source_crs.upper() in ["EPSG:4326", "CRS:84"]:
@@ -62,8 +63,11 @@ def transform_bbox(bbox_str, source_crs):
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
         elif source_crs.upper() == "EPSG:3857":
             transformer = webmercator_to_lks92
+            # Transform corner points
             min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
+            
+            logger.info(f"Transformed corners: ({min_x_transformed}, {min_y_transformed}) -> ({max_x_transformed}, {max_y_transformed})")
         else:
             # If it's already EPSG:3059 or another system, pass through
             logger.warning(f"Unsupported source CRS: {source_crs}, passing through")
@@ -74,6 +78,8 @@ def transform_bbox(bbox_str, source_crs):
         final_miny = min(min_y_transformed, max_y_transformed)
         final_maxx = max(min_x_transformed, max_x_transformed)
         final_maxy = max(min_y_transformed, max_y_transformed)
+        
+        logger.info(f"Final BBOX: minx={final_minx}, miny={final_miny}, maxx={final_maxx}, maxy={final_maxy}")
         
         # Return transformed coordinates
         transformed_bbox = f"{final_minx},{final_miny},{final_maxx},{final_maxy}"
