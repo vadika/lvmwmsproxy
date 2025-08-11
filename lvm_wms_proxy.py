@@ -53,6 +53,9 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
         if len(coords) != 4:
             raise ValueError("BBOX must have 4 coordinates")
         
+        logger.info(f"Raw input coordinates: {coords}")
+        logger.info(f"Source CRS: {source_crs}, WMS Version: {wms_version}")
+        
         # For WMS 1.3.0, axis order depends on CRS
         if wms_version == "1.3.0":
             if source_crs.upper() == "EPSG:4326":
@@ -69,23 +72,43 @@ def transform_bbox(bbox_str, source_crs, wms_version="1.3.0"):
             minx, miny, maxx, maxy = coords
             logger.info(f"WMS 1.1.1 - Input BBOX (x,y,x,y): {bbox_str}")
         
+        logger.info(f"Parsed coordinates: minx={minx}, miny={miny}, maxx={maxx}, maxy={maxy}")
+        
+        # Validate input coordinates are reasonable
+        if source_crs.upper() == "EPSG:3857":
+            # Web Mercator should be in reasonable range
+            if not (-20037508 <= minx <= 20037508) or not (-20037508 <= maxx <= 20037508):
+                logger.warning(f"Web Mercator X coordinates seem out of range: {minx}, {maxx}")
+            if not (-20037508 <= miny <= 20037508) or not (-20037508 <= maxy <= 20037508):
+                logger.warning(f"Web Mercator Y coordinates seem out of range: {miny}, {maxy}")
+        
         # Choose appropriate transformer
         if source_crs.upper() in ["EPSG:4326", "CRS:84"]:
             transformer = wgs84_to_lks92
             # Transform corner points
             min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
+            logger.info(f"WGS84 transformation: ({minx}, {miny}) -> ({min_x_transformed}, {min_y_transformed})")
+            logger.info(f"WGS84 transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
         elif source_crs.upper() == "EPSG:3857":
             transformer = webmercator_to_lks92
             # Transform corner points
             min_x_transformed, min_y_transformed = transformer.transform(minx, miny)
             max_x_transformed, max_y_transformed = transformer.transform(maxx, maxy)
             
-            logger.info(f"Transformed corners: ({min_x_transformed}, {min_y_transformed}) -> ({max_x_transformed}, {max_y_transformed})")
+            logger.info(f"Web Mercator transformation: ({minx}, {miny}) -> ({min_x_transformed}, {min_y_transformed})")
+            logger.info(f"Web Mercator transformation: ({maxx}, {maxy}) -> ({max_x_transformed}, {max_y_transformed})")
         else:
             # If it's already EPSG:3059 or another system, pass through
             logger.warning(f"Unsupported source CRS: {source_crs}, passing through")
             return bbox_str
+        
+        # Check if transformed coordinates are reasonable for Latvia (LKS-92)
+        # Latvia LKS-92 coordinates should be roughly: X: 300000-700000, Y: 0-400000
+        if not (200000 <= min_x_transformed <= 800000) or not (200000 <= max_x_transformed <= 800000):
+            logger.error(f"Transformed X coordinates seem wrong for Latvia: {min_x_transformed}, {max_x_transformed}")
+        if not (-100000 <= min_y_transformed <= 500000) or not (-100000 <= max_y_transformed <= 500000):
+            logger.error(f"Transformed Y coordinates seem wrong for Latvia: {min_y_transformed}, {max_y_transformed}")
         
         # Ensure proper coordinate order (min values should be smaller than max values)
         final_minx = min(min_x_transformed, max_x_transformed)
